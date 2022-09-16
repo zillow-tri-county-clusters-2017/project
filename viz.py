@@ -16,7 +16,7 @@ import plotly.express as px
 def get_viz():
     print(
         '''
-from vis import boxplots, hists, heatmaps, slicer, haversine
+from viz import boxplots, hists, heatmaps, slicer, haversine
         '''
     )
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~<  boxplots  >~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
