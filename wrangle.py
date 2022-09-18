@@ -458,104 +458,122 @@ def clean_zillow():
     also, why model based on houses less than $100,000.00 or more than $1M 
     and we will reset the index, which will allow us to use the boxplots function for explore
     '''
-
-    df= get_zillow()
-
-    df = df.drop(columns= ['garages', 'garage_sqft', 'sqft_12'])
-
-    outlier_cols = ['bathrooms',
-    'bedrooms',
-    'tot_sqft',
-    'fireplaces',
-    'full_baths',
-    # 'garages',
-    # 'garage_sqft',
-    'lot_sqft',
-    'tax_value',
-    'land_tax_value',
-    ]
-
-    df = SFR(df)
+# Set the filename for caching
+    filename= 'clean_zillow'
     
+# if the file is available locally, read it
+    if os.path.isfile(filename):
+        df = pd.read_pickle(filename)
+        
+    else:
+
+        df= get_zillow()
+
+        df = df.drop(columns= ['garages', 'garage_sqft', 'sqft_12'])
+
+        outlier_cols = ['bathrooms',
+        'bedrooms',
+        'tot_sqft',
+        'fireplaces',
+        'full_baths',
+        # 'garages',
+        # 'garage_sqft',
+        'lot_sqft',
+        'tax_value',
+        'land_tax_value',
+        ]
+
+        df = SFR(df)
+        
 # Set the cols to outlier_cols 
-    cols = outlier_cols
+        cols = outlier_cols
 
 # Use remove_outliers
-    df = remove_outliers(df, 1.5, cols)
+        df = remove_outliers(df, 1.5, cols)
 # fillna(0)
-    # df.garage_sqft = df.garage_sqft.fillna(0)
-    
-    # df.garages = df. garages.fillna(0)
+        # df.garage_sqft = df.garage_sqft.fillna(0)
+        
+        # df.garages = df. garages.fillna(0)
 
-    df.hot_tub = df.hot_tub.fillna(0)
+        df.hot_tub = df.hot_tub.fillna(0)
 
-    df.pools = df.pools.fillna(0)
+        df.pools = df.pools.fillna(0)
 
-    df.tax_delinquency_flag = df.tax_delinquency_flag.map({'Y':1}).fillna(0)
+        df.tax_delinquency_flag = df.tax_delinquency_flag.map({'Y':1}).fillna(0)
 
-    df= handle_missing_values(df)
+        df= handle_missing_values(df)
 
-    df.bedrooms = df.bedrooms.map({2: '_2_',
-                 3: '_3_',
-                 4: '_4_',
-                 5: '_5_'
-                })
+        df.bedrooms = df.bedrooms.map({2: '_2_',
+                    3: '_3_',
+                    4: '_4_',
+                    5: '_5_'
+                    })
 
-    df.bathrooms = pd.cut(df.bathrooms,
-                      bins = (0,1,2,3,4,5), 
-                      labels=('_1_', '_2_', '_3_', '_4_', '_5_')
-                     )
-                    
-    df.bathrooms = df.bathrooms.astype('O')
+        df.bathrooms = pd.cut(df.bathrooms,
+                        bins = (0,1,2,3,4,5), 
+                        labels=('_1_', '_2_', '_3_', '_4_', '_5_')
+                        )
+                        
+        df.bathrooms = df.bathrooms.astype('O')
 
-    df = df.drop(columns= ['units', 'year_assesed', 'land_use_type', 'county_id'])
+        df = df.drop(columns= ['units', 'year_assesed', 'land_use_type', 'county_id'])
 
 # Reset the index
-    df = df.reset_index()
+        df = df.reset_index()
 # drop the resulting 'index' column
-    df = df.drop(columns='index')
+        df = df.drop(columns='index')
 
-    df.zip_code[19709] = 99675
+        df.zip_code[19709] = 99675
 
-    df = df.drop(index= df[df.zip_code.isnull()].index)
-    
-    df = df.drop(index= df[df.city_id.isnull()].index)
+        df = df.drop(index= df[df.zip_code.isnull()].index)
+        
+        df = df.drop(index= df[df.city_id.isnull()].index)
 
-    df = df.drop(columns= ['heat_type', 'quality_type', 'zoning'])
+        df = df.drop(columns= ['heat_type', 'quality_type', 'zoning'])
 
-    df = df.drop(index= df[df.isnull().sum(axis=1) > 0].index)
+        df = df.drop(index= df[df.isnull().sum(axis=1) > 0].index)
 
-    df = df.drop(index= df[df.tract_and_block == df.tract_and_block.max()].index)
+        df = df.drop(index= df[df.tract_and_block == df.tract_and_block.max()].index)
 
-    df = df.drop(index= df[df.zip_code == df.zip_code.max()].index)
+        df = df.drop(index= df[df.zip_code == df.zip_code.max()].index)
 
-    df = df.drop(index= df[df.parcel == df.parcel.max()].index)
+        df = df.drop(index= df[df.parcel == df.parcel.max()].index)
 
-    df = df.drop(index= df[df.parcel == df.parcel.max()].index)
+        df = df.drop(index= df[df.parcel == df.parcel.max()].index)
 
-    df = df.drop(index= df[df.parcel == df.parcel.max()].index)
+        df = df.drop(index= df[df.parcel == df.parcel.max()].index)
 
-    df.full_baths = df.full_baths.map({1:'_1_',
-                   2:'_2_',
-                   3:'_3_',
-                   4:'_4_'
-                  })
+        df.full_baths = df.full_baths.map({1:'_1_',
+                    2:'_2_',
+                    3:'_3_',
+                    4:'_4_'
+                    })
 
-    df['half_baths'] = 0
+        df['half_baths'] = 0
 
-    for i in df[df.full_baths != df.bathrooms].index:
+        for i in df[df.full_baths != df.bathrooms].index:
 #     print(i)
-        df.half_baths[i] += 1
+            df.half_baths[i] += 1
 
-    df = df.drop(columns= 'full_baths')
-    
+        df = df.drop(columns= 'full_baths')
+        
 
 # Reset the index
-    df = df.reset_index()
+        df = df.reset_index()
 # drop the resulting 'index' column
-    df = df.drop(columns='index')
+        df = df.drop(columns='index')
+        df = df.drop(columns= 'calc_bath_n_bed')
+        df['house_age'] = (df.year_built.astype('int')-2017)*-1
+        df = df.drop(columns='year_built')
+        df = df.drop(columns='num_rooms')
+        df.tax_delinquency_flag = df.tax_delinquency_flag.astype('int')
+        df.tract_and_block = df.tract_and_block.astype('int').astype('str').str[4:].astype('int')
+        df.pools = df.pools.astype('int')
+        df.city_id = df.city_id.astype('int').astype('str')
+        df.zip_code = df.zip_code.astype('int').astype('str')
 
-    return df
+
+        return df
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~<  SPLIT_DATA_CONTINUOUS  >~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
