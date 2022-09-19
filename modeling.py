@@ -75,6 +75,8 @@ def get_baselines(train, validate, test, y='tax_value'):
     # Various methods for baseline predictions
     # We'll make new columns for each, and stick them in our training set
 
+    train[y] = train[y].abs()
+    
     train['mean_preds'] = \
     train[y].mean()
 

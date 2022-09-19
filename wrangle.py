@@ -68,7 +68,6 @@ def gdb(db_name, query):
         having      created the url from my environment file
     '''
     from pandas import read_sql
-    from env import get_db_url
     url = get_db_url(db_name)
     return read_sql(query, url)
 
@@ -572,7 +571,7 @@ def clean_zillow():
         df.city_id = df.city_id.astype('int').astype('str')
         df.zip_code = df.zip_code.astype('int').astype('str')
 
-
+        df.to_pickle(filename)
         return df
 
 
