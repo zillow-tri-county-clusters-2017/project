@@ -436,11 +436,13 @@ def SFR(df):
     and returns only the Single family residential properties
     aslo as a DataFrame
     '''
+#     Set Land Use to only SFR and ditch the stories differences
     sfr = df[df.land_use_type == 'Single Family Residential']
     sfr = sfr[sfr.stories_type != 7]
-
+#     Any multi unit more than 1 is gone
+#     Set it
     multi_unit = sfr[sfr.units > 1]
-
+#     And forget it
     sfr = sfr.drop(index=multi_unit.index)
     
     return sfr
