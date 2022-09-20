@@ -121,7 +121,7 @@ def model_metrics(model,
     
     
     # fit our model object
-    model.fit(X_train, y_train['tax_value'])
+    model.fit(X_train, y_train['logerror'])
     in_sample_pred = model.predict(X_train)
     out_sample_pred = model.predict(X_validate)
     model_name = input('Name for model?')
@@ -129,9 +129,9 @@ def model_metrics(model,
     y_validate[model_name] = out_sample_pred
  
     rmse_val = mean_squared_error(
-    y_validate['tax_value'], out_sample_pred, squared=False)
+    y_validate['logerror'], out_sample_pred, squared=False)
     r_squared_val = explained_variance_score(
-        y_validate['tax_value'], out_sample_pred)
+        y_validate['logerror'], out_sample_pred)
     metric_df = metric_df.append({
         'model': model_name,
         'rmse': rmse_val,
