@@ -62,7 +62,7 @@ def scale_data(train, validate, test):
     return train, validate, test
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~<  GET_BASELINES  >~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-def get_baselines(train, validate, test, y='tax_value'):
+def get_baselines(train, validate, test, y='logerror'):
     '''
     Parameters:
     --------------------
@@ -75,6 +75,8 @@ def get_baselines(train, validate, test, y='tax_value'):
     # Various methods for baseline predictions
     # We'll make new columns for each, and stick them in our training set
 
+    # train[y] = train[y].abs()
+    
     train['mean_preds'] = \
     train[y].mean()
 
@@ -108,11 +110,37 @@ def get_baselines(train, validate, test, y='tax_value'):
         validate[i] = train[i][one]
         test[i] = train[i][one]
     
+    # print(validate.info())
+    
+#     best_rmse = 1_000_000_000
+#     best_baseline = None
+
+#     for i in baselines:
+#         rmse_train = mean_squared_error(train[y], train[i]) ** 0.5
+#         rmse_validate = mean_squared_error(validate[y], validate[i]) ** 0.5
+
+#         if rmse_train < best_rmse:
+#             best_rmse = rmse_train
+#             best_baseline = i
+#             in_out = rmse_train/rmse_validate
+
+
+#     train['baseline'] = round(train[best_baseline])
+#     validate['baseline'] = round(train[best_baseline])
+#     test['baseline'] = round(train[best_baseline])
+
+#     train = train.drop(columns= baselines)
+#     # train = train.drop(columns= ['le', 'city_id_count', 'zip_code_count'])
+#     validate = validate.drop(columns= baselines)
+#     test = test.drop(columns= baselines)
+
+#     print(f'The {best_baseline} had the lowest RMSE: {round(best_rmse)} with an in/out of: {round(in_out,3)}')
+    
     return train, validate, test
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~<  MODEL_SETS  >~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
-def model_sets(train, validate, test, scale_X_cols=True, target='tax_value', with_baseline= True):
+def model_sets(train, validate, test, scale_X_cols=True, target='rsle', with_baseline= True):
     '''
     Takes in the train, validate, and test sets and returns the X_train, y_train, etc. subsets
 
@@ -143,7 +171,7 @@ def model_sets(train, validate, test, scale_X_cols=True, target='tax_value', wit
     These can be used to train and evaluate model performance!
 
     '''
-
+    
     # use forloop to get columns for X_cols exckuding the target and the baseline
     X_cols = []
     for i in train.columns:

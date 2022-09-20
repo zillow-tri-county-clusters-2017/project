@@ -68,7 +68,6 @@ def gdb(db_name, query):
         having      created the url from my environment file
     '''
     from pandas import read_sql
-    from env import get_db_url
     url = get_db_url(db_name)
     return read_sql(query, url)
 
@@ -560,26 +559,33 @@ def clean_zillow():
 
 # Reset the index
         df = df.reset_index()
-# drop the resulting 'index' column
-        df = df.drop(columns='index')
-        df = df.drop(columns= 'calc_bath_n_bed')
+    
         df['house_age'] = (df.year_built.astype('int')-2017)*-1
-        df = df.drop(columns='year_built')
-        df = df.drop(columns='num_rooms')
+        
+# drop the resulting 'index' column
+        df = df.drop(columns=['index',
+                             'calc_bath_n_bed',
+                             'year_built',
+                             'num_rooms',
+                             'trans_date'])
+       
         df.tax_delinquency_flag = df.tax_delinquency_flag.astype('int')
         df.tract_and_block = df.tract_and_block.astype('int').astype('str').str[4:].astype('int')
         df.pools = df.pools.astype('int')
         df.city_id = df.city_id.astype('int').astype('str')
         df.zip_code = df.zip_code.astype('int').astype('str')
+        
+        df['rsle'] = df.logerror.abs()
 
-
-        return df
+        df.to_pickle(filename)
+    
+    return df
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~<  SPLIT_DATA_CONTINUOUS  >~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
 
-def split_data_continuous(df, rand_st=123, with_baseline=False):
+def split_data_continuous(df, rand_st=123, with_baseline=False, target='logerror'):
     '''
     Takes in: a pd.DataFrame()
           and a random state           ;if no random state is specifed defaults to [123]
@@ -601,6 +607,7 @@ def split_data_continuous(df, rand_st=123, with_baseline=False):
     print(f'Test: {test.shape}')
 # here we add the if with_baselines to add all the possible baselines
     if with_baseline:
+        from modeling import get_baselines
         baselines = ['mean_preds',
         'median_preds',
         'mode_preds',
@@ -608,7 +615,7 @@ def split_data_continuous(df, rand_st=123, with_baseline=False):
         'hm_mmm_preds',
         'h_m_total_preds']
         # Use the get_baselines function
-        train, validate, test = get_baselines(train, validate, test)
+        train, validate, test = get_baselines(train, validate, test, y=target)
 # Set the best basline RMSE to 1M so that it's above any reasonable baseline and baseline to none
         best_rmse = 1_000_000_000
         best_baseline = None
