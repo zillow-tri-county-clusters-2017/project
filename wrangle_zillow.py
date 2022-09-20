@@ -360,7 +360,7 @@ def split(df, target_var):
     # create y_test by keeping only the target variable.
     y_test = test[[target_var]]
 
-    partitions = [train, X_train, X_validate, X_test, y_train, y_validate, y_test]
-    return partitions, validate, test
+    partitions = [train, validate, test, X_train, X_validate, X_test, y_train, y_validate, y_test]
+    return partitions
 
 
