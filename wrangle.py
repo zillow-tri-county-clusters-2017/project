@@ -13,6 +13,8 @@ from sklearn.metrics import mean_squared_error
 from sklearn.linear_model import LinearRegression, LassoLars, TweedieRegressor
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.metrics import explained_variance_score
+from sklearn.model_selection import train_test_split
+
 
 from IPython.display import display, Markdown, Latex
 
@@ -44,6 +46,182 @@ from wrangle import get_zillow, summarize, sfr, remove_outliers,\
 # <  remove_outliers        >
 # <  handle_missing_values  >
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~<  PREPARE  >~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+def prepare(df):
+    '''
+    This is passed df...
+    '''
+
+    df['house_age_bin'] = pd.cut(df.house_age, 
+                               bins = [0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140],
+                               labels = [0, .066, .133, .20, .266, .333, .40, .466, .533, 
+                                         .60, .666, .733, .8, .866, .933])
+
+    df['taxrate'] = df.tax_amount/df.tax_value*100
+
+    df['acres'] = df.lot_sqft/ 43560
+
+    df['acres_bin'] = pd.cut(df.acres, bins = [0, .10, .15, .25, .5, 1, 5, 10, 20, 50, 200], 
+                           labels = [0, .1, .2, .3, .4, .5, .6, .7, .8, .9])
+
+    df['tot_sqft_bin'] = pd.cut(df.tot_sqft, 
+                                bins = [0, 800, 1000, 1250, 1500, 2000, 2500, 3000, 4000, 7000, 12000],
+                                labels = [0, .1, .2, .3, .4, .5, .6, .7, .8, .9]
+                           )
+
+    df['structure_dollar_per_sqft'] = df.building_tax_value / df.tot_sqft
+
+    df['structure_dollar_sqft_bin'] = pd.cut(df.structure_dollar_per_sqft, 
+                                                 bins = [0, 25, 50, 75, 100, 150, 200, 300, 500, 1000, 1500],
+                                                 labels = [0, .1, .2, .3, .4, .5, .6, .7, .8, .9]
+                                                )
+
+    df['land_dollar_per_sqft'] = df.land_tax_value / df.lot_sqft
+
+    df['land_dollar_sqft_bin'] = pd.cut(df.land_dollar_per_sqft, bins = [0, 1, 5, 20, 50, 100, 250, 500, 1000, 1500, 2000],
+                                           labels = [0, .1, .2, .3, .4, .5, .6, .7, .8, .9]
+                                          )
+
+    df = df.astype({'tot_sqft_bin': 'float64', 'acres_bin': 'float64', 'house_age_bin': 'float64',
+                        'structure_dollar_sqft_bin': 'float64', 'land_dollar_sqft_bin': 'float64'})
+
+
+    df.bedrooms = df.bedrooms.map({'_4_':4, '_3_':3, '_2_': 2, '_5_': 5})
+
+    df.bathrooms = df.bathrooms.map({'_4_':4, '_3_':3, '_2_': 2, '_5_': 5, '_1_':1})
+
+    df['bed_bath_ratio'] = df.bedrooms/ df.bathrooms
+
+    df['incity_la'] = df.city_id.apply(lambda x: 1 if x == 12447 else 0)
+
+    fips = pd.get_dummies(df.fips)
+
+    df = pd.concat([df, fips], axis=1)
+
+    df = df.drop(columns= ['bedrooms','tax_amount', 'tax_value','structure_dollar_per_sqft', 'land_dollar_per_sqft',\
+                           'lot_sqft','tax_delinquency_flag','land_tax_value','building_tax_value','city_id', 'rsle',\
+                           'pools', 'hot_tub','zip_code', 'county_landuse', 'tract_and_block', 'half_baths', 'id',\
+                           'parcel', 'raw_tract_and_block','fips'])
+
+    return df
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~<  EXPLORE_SETS  >~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+def explore_sets():
+    df= clean_zillow()
+    df= prepare(df)
+    
+    partitions = split(df, target_var= 'logerror')
+
+    train = partitions[0]
+    train['logerror_bins'] = pd.cut(train.logerror, [-5, -.2, -.05, .05, .2, 4])
+    # partitions[0] = train
+
+    # train.logerror_bins.value_counts()
+
+    validate = partitions[1]
+    test = partitions[2]
+
+    # train.shape
+
+    # validate.shape
+
+    # test.shape
+
+    X_train = partitions[3]
+    X_validate = partitions[4]
+    X_test = partitions[5]
+    y_train = partitions[6]
+    y_validate = partitions[7]
+    y_test = partitions[8]
+    
+    return X_train, X_validate, X_test, y_train, y_validate, y_test
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~< SPLIT >~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    
+def split(df, target_var):
+    '''
+    This function takes in the dataframe and target variable name as arguments and then
+    splits the dataframe into train (56%), validate (24%), & test (20%)
+    It will return a list containing the following dataframes: train (for exploration), 
+    X_train, X_validate, X_test, y_train, y_validate, y_test
+    '''
+    # split df into train_validate (80%) and test (20%)
+    train_validate, test = train_test_split(df, test_size=.20, random_state=13)
+    # split train_validate into train(70% of 80% = 56%) and validate (30% of 80% = 24%)
+    train, validate = train_test_split(train_validate, test_size=.3, random_state=13)
+
+    # create X_train by dropping the target variable 
+    X_train = train.drop(columns=[target_var])
+    # create y_train by keeping only the target variable.
+    y_train = train[[target_var]]
+
+    # create X_validate by dropping the target variable 
+    X_validate = validate.drop(columns=[target_var])
+    # create y_validate by keeping only the target variable.
+    y_validate = validate[[target_var]]
+
+    # create X_test by dropping the target variable 
+    X_test = test.drop(columns=[target_var])
+    # create y_test by keeping only the target variable.
+    y_test = test[[target_var]]
+
+    partitions = [train, validate, test, X_train, X_validate, X_test, y_train, y_validate, y_test]
+    return partitions
+
+
+def get_big_X():
+    df= clean_zillow()
+    df= prepare(df)
+    
+    partitions = split(df, target_var= 'logerror')
+
+    train = partitions[0]
+    train['logerror_bins'] = pd.cut(train.logerror, [-5, -.2, -.05, .05, .2, 4])
+    # partitions[0] = train
+
+    # train.logerror_bins.value_counts()
+
+    validate = partitions[1]
+    test = partitions[2]
+
+    # train.shape
+
+    # validate.shape
+
+    # test.shape
+
+    X_train = partitions[3]
+    X_validate = partitions[4]
+    X_test = partitions[5]
+    y_train = partitions[6]
+    y_validate = partitions[7]
+    y_test = partitions[8]
+    
+    # the variables that still need scaling
+    scaled_vars = ['lat', 'lon', 'bathrooms', 'taxrate']
+
+    # create new column names for the scaled variables by adding 'scaled_' to the beginning of each variable name 
+    scaled_column_names = ['scaled_' + i for i in scaled_vars]
+
+    # select the X partitions: [X_train, X_validate, X_test]
+    X = partitions[3:6]
+
+    # fit the minmaxscaler to X_train
+    X_train = X[0]
+    scaler = MinMaxScaler(copy=True).fit(X_train[scaled_vars])
+
+
+
+    def scale_and_concat(df):
+        scaled_array = scaler.transform(df[scaled_vars])
+        scaled_df = pd.DataFrame(scaled_array, columns=scaled_column_names, index=df.index.values)
+        return pd.concat((df, scaled_df), axis=1)
+
+    for i in range(len(X)):
+        X[i] = scale_and_concat(X[i])
+
+    return X, train, validate, test, partitions
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~<  GET_DB_URL  >~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
